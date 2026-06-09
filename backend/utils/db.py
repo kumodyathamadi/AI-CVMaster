@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from backend.config import config
+from config import config
 import sys
 
 class MongoDB:

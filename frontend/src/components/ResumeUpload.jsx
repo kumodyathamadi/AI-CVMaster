@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { uploadResume } from '../services/api';
 import '../styles/ResumeUpload.css';
 
-const ResumeUpload = () => {
+const ResumeUpload = ({ onAnalysisComplete }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
@@ -18,7 +18,7 @@ const ResumeUpload = () => {
   const validateAndSetFile = (selectedFile) => {
     if (!selectedFile) return;
 
-    // Reset status
+    // Reset status and data
     setStatus('idle');
     setMessage('');
 
@@ -59,7 +59,13 @@ const ResumeUpload = () => {
 
       if (response.data.success) {
         setStatus('success');
-        setMessage(response.data.message || 'Resume uploaded successfully!');
+        setMessage(response.data.message || 'Resume processed successfully!');
+        
+        // Pass data to parent component (App.jsx)
+        if (onAnalysisComplete) {
+          onAnalysisComplete(response.data.data);
+        }
+        
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
@@ -155,6 +161,7 @@ const ResumeUpload = () => {
           <span>❌</span> {message}
         </div>
       )}
+
     </div>
   );
 };

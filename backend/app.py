@@ -1,7 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
-from backend.config import config
-from backend.routes.upload_routes import upload_bp
+from config import config
+from routes.upload_routes import upload_bp
+from services.pdf_extractor import extract_text_from_pdf
 import os
 
 def create_app():

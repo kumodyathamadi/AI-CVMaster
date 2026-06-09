@@ -1,4 +1,4 @@
-from backend.config import config
+from config import config
 
 def allowed_file(filename):
     """
