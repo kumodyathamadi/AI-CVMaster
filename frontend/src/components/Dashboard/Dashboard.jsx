@@ -36,32 +36,56 @@ const Dashboard = ({ data, onReset }) => {
     switch (activeTab) {
       case 'ats':
         const atsScore = data.ats_score || 0;
+        const checks = [
+          { label: "Skills Section", desc: "Detection of technical and soft skill blocks", status: data.skills?.technical?.length > 0 },
+          { label: "Role History", desc: "Timeline of professional experience and titles", status: data.experience?.job_titles?.[0] !== "Not Found" },
+          { label: "Contact Schema", desc: "Email, phone and social link presence", status: data.candidate?.email !== "Not Found" },
+          { label: "Academic Records", desc: "Clear education and degree listing", status: data.education?.degree !== "Information Not Available" }
+        ];
+
         return (
           <div className="tab-content ats-view">
-            <h2>ATS Compatibility Analysis</h2>
-            <div className="ats-grid">
-              <div className="ats-item">
-                <label>Overall ATS Score</label>
-                <div className={`ats-status ${atsScore > 70 ? 'success' : 'warning'}`}>
-                  {atsScore}%
+            <div className="ats-header-row">
+              <h2>ATS Compatibility Analysis</h2>
+              <div className="ats-score-badge">
+                <span className="score-val">{atsScore}%</span>
+                <span className="score-label">System Match</span>
+              </div>
+            </div>
+            
+            <div className="ats-main-grid">
+              <div className="ats-checks-column">
+                <h3 className="section-title">Structural Integrity</h3>
+                <div className="checks-container">
+                  {checks.map((check, i) => (
+                    <div key={i} className={`check-card ${check.status ? 'pass' : 'fail'}`}>
+                      <div className="check-icon">{check.status ? '✓' : '✕'}</div>
+                      <div className="check-info">
+                        <h4>{check.label}</h4>
+                        <p>{check.desc}</p>
+                      </div>
+                      <div className="status-label">{check.status ? 'Detected' : 'Missing'}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="ats-item">
-                <label>Structural Check</label>
-                <ul className="check-list">
-                  <li>{data.skills?.technical?.length > 0 ? '✅' : '❌'} Skills Section Detected</li>
-                  <li>{data.experience?.job_titles?.[0] !== "Not Found" ? '✅' : '❌'} Experience History Detected</li>
-                  <li>{data.candidate?.email !== "Not Found" ? '✅' : '❌'} Contact Information Found</li>
-                  <li>{data.education?.degree !== "Information Not Available" ? '✅' : '❌'} Education Credentials Found</li>
-                </ul>
-              </div>
-              <div className="ats-item">
-                <label>Optimization Tip</label>
-                <p>
-                  {atsScore > 80 
-                    ? "Excellent structure. Your resume is highly readable by modern standard ATS systems."
-                    : "Consider adding more standard section headers and ensuring your contact info is at the very top."}
-                </p>
+
+              <div className="ats-insights-column">
+                <div className="optimization-card">
+                  <h3>Optimization Strategy</h3>
+                  <div className="strategy-content">
+                     <div className="strategy-icon">💡</div>
+                     <p>
+                        {atsScore > 80 
+                          ? "Your resume's structure is perfectly aligned with modern ATS parsing algorithms. Most recruiters will be able to search and filter your profile effortlessly."
+                          : "To improve scannability, use standard section titles (e.g., 'Work Experience' instead of 'My Journey'). Ensure your most important contact info is in the header, not a footer."}
+                     </p>
+                  </div>
+                </div>
+
+                <div className="ats-tip">
+                  <strong>Pro Tip:</strong> Avoid using complex graphics, tables, or text boxes, as they can confuse some older ATS systems.
+                </div>
               </div>
             </div>
           </div>
@@ -72,35 +96,65 @@ const Dashboard = ({ data, onReset }) => {
 
         return (
           <div className="tab-content experience-view">
-            <h2>Experience Analysis</h2>
-            <div className="experience-meta">
-              <div className="meta-box">
-                <label>Years of Experience</label>
-                <span>{data.experience?.years || 0} Years</span>
+            <div className="experience-header-row">
+              <h2>Professional Experience Analysis</h2>
+              <div className="tenure-badge">
+                <span className="tenure-val">{data.experience?.years || 0}</span>
+                <span className="tenure-label">Total Years</span>
               </div>
             </div>
-            <div className="timeline">
-              {hasTitles ? (
-                titles.map((title, i) => (
-                  <div key={i} className="timeline-item">
-                    <div className="dot"></div>
-                    <div className="content">
-                      <h4>{title}</h4>
-                      <p>{i === 0 ? 'Extracted Position' : 'Previous Position'}</p>
+
+            <div className="experience-main-layout">
+              <div className="timeline-section">
+                <h3 className="section-title">Career Progression</h3>
+                <div className="professional-timeline">
+                  {hasTitles ? (
+                    titles.map((title, i) => (
+                      <div key={i} className="timeline-block">
+                        <div className="timeline-marker">
+                          <div className="marker-core"></div>
+                          {i !== titles.length - 1 && <div className="marker-line"></div>}
+                        </div>
+                        <div className="timeline-content-box">
+                          <div className="role-tag">{i === 0 ? 'Current / Latest' : 'Past Role'}</div>
+                          <h4>{title}</h4>
+                          <p className="role-desc">Extracted from professional history records.</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-state-card">
+                      <div className="empty-icon">📂</div>
+                      <p>Specific job titles were not explicitly identifiable in this document structure.</p>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="no-data">Information Not Available in Resume</div>
-              )}
-            </div>
-            <div className="ai-comment">
-              <p>💡 AI Insight: {data.experience?.years > 5 
-                ? "Senior-level profile detected based on date analysis." 
-                : data.experience?.years > 0 
-                  ? "Professional experience detected. Focus on quantitative achievements."
-                  : "Entry-level or transition profile detected."}
-              </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="experience-insights-section">
+                 <div className="intelligence-card">
+                    <h3>Career Intelligence</h3>
+                    <div className="intelligence-item">
+                      <div className="intel-label">Seniority Level</div>
+                      <div className="intel-value">
+                        {data.experience?.years > 8 ? "Executive / Expert" : 
+                         data.experience?.years > 4 ? "Mid-Senior Level" : 
+                         data.experience?.years > 1 ? "Professional" : "Junior / Entry"}
+                      </div>
+                    </div>
+                    <div className="intel-divider"></div>
+                    <div className="insight-briefing">
+                      <h4>AI Strategic Briefing</h4>
+                      <p>
+                        {data.experience?.years > 5 
+                          ? "Senior-level profile detected. Your extensive tenure suggests high reliability and specialized expertise." 
+                          : data.experience?.years > 0 
+                            ? "Core professional experience detected. You are in a strong growth phase for specialized roles."
+                            : "Entry-level or transition profile detected. Focus on showcasing academic projects and certifications."}
+                      </p>
+                    </div>
+                 </div>
+              </div>
             </div>
           </div>
         );

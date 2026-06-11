@@ -1,1 +1,1 @@
-# Services package initialization
+# Make services a package

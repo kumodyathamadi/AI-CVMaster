@@ -1,1 +1,1 @@
-# Routes package initialization
+# Make routes a package
