@@ -12,8 +12,13 @@ def create_app():
     # Enable CORS
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
+    from utils.db import get_db
     # Register Blueprints
     app.register_blueprint(upload_bp, url_prefix='/api')
+    
+    # Initialize DB connection
+    with app.app_context():
+        get_db()
     
     # Ensure upload folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):

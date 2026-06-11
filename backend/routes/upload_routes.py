@@ -88,7 +88,10 @@ def upload_resume():
         return jsonify({
             "success": True,
             "message": "Resume analyzed successfully",
-            "data": analysis_data
+            "data": {
+                **analysis_data,
+                "raw_text": resume_text
+            }
         }), 201
         
     except Exception as e:
@@ -97,4 +100,28 @@ def upload_resume():
         return jsonify({
             "success": False,
             "message": f"An error occurred: {str(e)}"
+        }), 500
+
+@upload_bp.route('/match', methods=['POST'])
+def match_resume():
+    """
+    Analyzes the match between a resume text and a job description.
+    """
+    data = request.json
+    if not data or 'resume_text' not in data or 'job_description' not in data:
+        return jsonify({
+            "success": False,
+            "message": "Missing resume text or job description"
+        }), 400
+        
+    try:
+        match_results = match_job_description(data['resume_text'], data['job_description'])
+        return jsonify({
+            "success": True,
+            "data": match_results
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
         }), 500

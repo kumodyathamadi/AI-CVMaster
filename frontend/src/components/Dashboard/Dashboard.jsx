@@ -1,14 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ScoreCard from './ScoreCard';
 import ProfileCard from './ProfileCard';
 import SkillsDashboard from './SkillsDashboard';
 import RecommendationDashboard from './RecommendationDashboard';
+import axios from 'axios';
 import './Dashboard.css';
 
 const Dashboard = ({ data, onReset }) => {
-  const [activeTab, setActiveTab] = React.useState('overview');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [jdText, setJdText] = useState('');
+  const [matchResult, setMatchResult] = useState(null);
+  const [isLoadingMatch, setIsLoadingMatch] = useState(false);
   
   if (!data) return null;
+
+  const handleAnalyzeMatch = async () => {
+    if (!jdText.trim()) return;
+    
+    setIsLoadingMatch(true);
+    try {
+      const response = await axios.post('http://localhost:5000/api/match', {
+        resume_text: data.raw_text || "",
+        job_description: jdText
+      });
+      setMatchResult(response.data.data);
+    } catch (error) {
+      console.error("Match error:", error);
+      alert("Failed to analyze match. Please try again.");
+    } finally {
+      setIsLoadingMatch(false);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -28,9 +50,9 @@ const Dashboard = ({ data, onReset }) => {
                 <label>Structural Check</label>
                 <ul className="check-list">
                   <li>{data.skills?.technical?.length > 0 ? '✅' : '❌'} Skills Section Detected</li>
-                  <li>{data.experience?.job_titles?.length > 0 ? '✅' : '❌'} Experience History Detected</li>
-                  <li>{data.candidate?.email ? '✅' : '❌'} Contact Information Found</li>
-                  <li>{data.education?.degree ? '✅' : '❌'} Education Credentials Found</li>
+                  <li>{data.experience?.job_titles?.[0] !== "Not Found" ? '✅' : '❌'} Experience History Detected</li>
+                  <li>{data.candidate?.email !== "Not Found" ? '✅' : '❌'} Contact Information Found</li>
+                  <li>{data.education?.degree !== "Information Not Available" ? '✅' : '❌'} Education Credentials Found</li>
                 </ul>
               </div>
               <div className="ats-item">
@@ -45,6 +67,9 @@ const Dashboard = ({ data, onReset }) => {
           </div>
         );
       case 'experience':
+        const titles = data.experience?.job_titles || [];
+        const hasTitles = titles.length > 0 && titles[0] !== "Not Found";
+
         return (
           <div className="tab-content experience-view">
             <h2>Experience Analysis</h2>
@@ -55,24 +80,26 @@ const Dashboard = ({ data, onReset }) => {
               </div>
             </div>
             <div className="timeline">
-              {data.experience?.job_titles?.length > 0 ? (
-                data.experience.job_titles.map((title, i) => (
+              {hasTitles ? (
+                titles.map((title, i) => (
                   <div key={i} className="timeline-item">
                     <div className="dot"></div>
                     <div className="content">
                       <h4>{title}</h4>
-                      <p>{i === 0 ? 'Latest Position' : 'Previous Role'}</p>
+                      <p>{i === 0 ? 'Extracted Position' : 'Previous Position'}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="no-data">No specific job titles detected in the resume text.</div>
+                <div className="no-data">Information Not Available in Resume</div>
               )}
             </div>
             <div className="ai-comment">
               <p>💡 AI Insight: {data.experience?.years > 5 
-                ? "Senior-level profile detected. Your extensive experience is a major strength." 
-                : "Promising profile. Focus on highlighting specific projects to compensate for shorter tenure."}
+                ? "Senior-level profile detected based on date analysis." 
+                : data.experience?.years > 0 
+                  ? "Professional experience detected. Focus on quantitative achievements."
+                  : "Entry-level or transition profile detected."}
               </p>
             </div>
           </div>
@@ -82,11 +109,49 @@ const Dashboard = ({ data, onReset }) => {
           <div className="tab-content match-view">
             <h2>Job Description Matching</h2>
             <p className="subtitle">Paste a job description below to see your semantic match score.</p>
-            <textarea className="jd-input" placeholder="Paste Job Description here..."></textarea>
-            <button className="match-button">Analyze Match</button>
-            <div className="match-result-placeholder">
-              <p>Based on your profile, you are a <strong>{Math.max(...Object.values(data.career_prediction || { 'Default': 0 }))}%</strong> match for current market standards in your primary role.</p>
-            </div>
+            <textarea 
+              className="jd-input" 
+              placeholder="Paste Job Description here..."
+              value={jdText}
+              onChange={(e) => setJdText(e.target.value)}
+            ></textarea>
+            <button 
+              className="match-button" 
+              onClick={handleAnalyzeMatch}
+              disabled={isLoadingMatch || !jdText.trim()}
+            >
+              {isLoadingMatch ? 'Analyzing...' : 'Analyze Match'}
+            </button>
+
+            {matchResult && (
+              <div className="match-results">
+                <div className="match-score-radial">
+                   <div className="match-score-value">{matchResult.score}%</div>
+                   <div className="match-label">Match Probability</div>
+                </div>
+
+                <div className="explanation-card">
+                  <strong>AI Analysis:</strong> {matchResult.explanation}
+                </div>
+
+                <div className="skills-comparison-grid">
+                  <div className="skills-list-box">
+                    <h5>Matching Skills</h5>
+                    <div className="pill-container">
+                      {matchResult.matched_skills.map((s, i) => <span key={i} className="pill matched">{s}</span>)}
+                      {matchResult.matched_skills.length === 0 && <span>No matching skills found</span>}
+                    </div>
+                  </div>
+                  <div className="skills-list-box">
+                    <h5>Missing Skills</h5>
+                    <div className="pill-container">
+                      {matchResult.missing_skills.map((s, i) => <span key={i} className="pill missing">{s}</span>)}
+                      {matchResult.missing_skills.length === 0 && <span>No critical missing skills</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       default:
@@ -96,7 +161,7 @@ const Dashboard = ({ data, onReset }) => {
               <ProfileCard 
                 candidate={{
                   ...data.candidate,
-                  jobTitle: data.experience?.job_titles?.[0]
+                  jobTitle: data.experience?.job_titles?.[0] !== "Not Found" ? data.experience?.job_titles?.[0] : "Candidate"
                 }} 
               />
               <SkillsDashboard skills={data.skills} />
@@ -125,7 +190,7 @@ const Dashboard = ({ data, onReset }) => {
         <div className="sidebar-nav">
           <div className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</div>
           <div className={`nav-item ${activeTab === 'ats' ? 'active' : ''}`} onClick={() => setActiveTab('ats')}>ATS Details</div>
-          <div className={`nav-item ${activeTab === 'experience' ? 'active' : ''}`} onClick={() => setActiveTab('experience')}>Experience</div>
+          <div className={`nav-item ${activeTab === 'experience' ? 'active' : ''}`} onClick={() => setActiveTab('experience')}>Experience Histroy</div>
           <div className={`nav-item ${activeTab === 'match' ? 'active' : ''}`} onClick={() => setActiveTab('match')}>Job Match</div>
         </div>
 
@@ -137,7 +202,7 @@ const Dashboard = ({ data, onReset }) => {
       <div className="dashboard-main">
         <header className="dashboard-header">
           <h1>Resume Intelligence Analysis</h1>
-          <p>Analyzing: <strong>{data.candidate?.name || 'Uploaded Document'}</strong></p>
+          <p>Analyzing: <strong>{data.candidate?.name !== "Not Found" ? data.candidate?.name : 'Uploaded Document'}</strong></p>
         </header>
 
         <div className="dashboard-content">
